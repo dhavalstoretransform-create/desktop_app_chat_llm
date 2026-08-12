@@ -1,27 +1,26 @@
 """
-Role ORM mapping.
+AI Provider ORM mapping.
 
-Defines the structure for user roles in the system.
+Defines the structure for LLM providers (e.g. OpenAI, Anthropic, Google).
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String
+from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
-from app.models.role_permission import role_permissions
 
 if TYPE_CHECKING:
-    from app.models.permission import Permission
+    from app.models.ai_model import AIModel
 
 
-class Role(BaseModel):
-    """ORM model representing a user role."""
+class AIProvider(BaseModel):
+    """ORM model representing an AI LLM provider."""
 
-    __tablename__ = "roles"
+    __tablename__ = "ai_providers"
 
     code: Mapped[str] = mapped_column(
         String(50),
@@ -30,7 +29,7 @@ class Role(BaseModel):
         index=True,
     )
     name: Mapped[str] = mapped_column(
-        String(50),
+        String(100),
         nullable=False,
         index=True,
     )
@@ -39,17 +38,15 @@ class Role(BaseModel):
         nullable=True,
     )
     is_active: Mapped[bool] = mapped_column(
+        Boolean,
         default=True,
         nullable=False,
+        index=True,
     )
 
-    # Many-to-many relationship to Permission
-    permissions: Mapped[list[Permission]] = relationship(
-        "Permission",
-        secondary=role_permissions,
-        back_populates="roles",
+    # One-to-many relationship with AI Models
+    models: Mapped[list[AIModel]] = relationship(
+        "AIModel",
+        back_populates="provider",
         lazy="select",
     )
-
-
-

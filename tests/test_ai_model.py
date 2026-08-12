@@ -15,20 +15,26 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.ai_model import AIModel
+from app.models.ai_provider import AIProvider
 
 
 @pytest.mark.asyncio
 async def test_create_ai_model_success(memory_db_session: AsyncSession):
     """Test successful model creation with default parameters and constraints."""
+    provider = AIProvider(code="openai", name="OpenAI")
+    memory_db_session.add(provider)
+    await memory_db_session.commit()
+    await memory_db_session.refresh(provider)
+
     model = AIModel(
-        model_name="gpt-4o",
-        provider="openai",
-        model_version="2024-05-13",
-        model_type="chat",
+        provider_id=provider.id,
+        code="gpt-4o",
+        name="GPT-4o",
+        description="GPT-4o description",
+        input_token_price=Decimal("5.0000"),
+        output_token_price=Decimal("15.0000"),
         max_context_tokens=128000,
-        input_cost_per_million=Decimal("5.0000"),
-        output_cost_per_million=Decimal("15.0000"),
-        created_by=uuid.uuid4(),
+        max_output_tokens=4096,
     )
     memory_db_session.add(model)
     await memory_db_session.commit()
@@ -36,23 +42,28 @@ async def test_create_ai_model_success(memory_db_session: AsyncSession):
 
     assert isinstance(model.id, uuid.UUID)
     assert model.is_active is True
-    assert model.model_name == "gpt-4o"
-    assert model.input_cost_per_million == Decimal("5.0000")
+    assert model.code == "gpt-4o"
+    assert model.input_token_price == Decimal("5.0000")
 
 
 @pytest.mark.asyncio
 async def test_ai_model_name_unique_constraint(memory_db_session: AsyncSession):
-    """Test unique constraint on model_name raises IntegrityError."""
+    """Test unique constraint on (provider_id, code) raises IntegrityError."""
+    provider = AIProvider(code="anthropic", name="Anthropic")
+    memory_db_session.add(provider)
+    await memory_db_session.commit()
+    await memory_db_session.refresh(provider)
+
     m1 = AIModel(
-        model_name="claude-3-5-sonnet",
-        provider="anthropic",
-        model_type="chat",
+        provider_id=provider.id,
+        code="claude-3-5-sonnet",
+        name="Claude 3.5 Sonnet",
         max_context_tokens=200000,
     )
     m2 = AIModel(
-        model_name="claude-3-5-sonnet",
-        provider="anthropic",
-        model_type="chat",
+        provider_id=provider.id,
+        code="claude-3-5-sonnet",
+        name="Claude 3.5 Sonnet Duplicate",
         max_context_tokens=200000,
     )
     memory_db_session.add(m1)
@@ -68,18 +79,23 @@ async def test_ai_model_name_unique_constraint(memory_db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_query_ai_model(memory_db_session: AsyncSession):
     """Test querying AI models."""
+    provider = AIProvider(code="google", name="Google")
+    memory_db_session.add(provider)
+    await memory_db_session.commit()
+    await memory_db_session.refresh(provider)
+
     model = AIModel(
-        model_name="gemini-1.5-pro",
-        provider="google",
-        model_type="chat",
+        provider_id=provider.id,
+        code="gemini-1.5-pro",
+        name="Gemini 1.5 Pro",
         max_context_tokens=2000000,
     )
     memory_db_session.add(model)
     await memory_db_session.commit()
 
     result = await memory_db_session.execute(
-        select(AIModel).where(AIModel.model_name == "gemini-1.5-pro")
+        select(AIModel).where(AIModel.code == "gemini-1.5-pro")
     )
     fetched = result.scalar_one()
-    assert fetched.provider == "google"
+    assert fetched.provider_id == provider.id
     assert fetched.max_context_tokens == 2000000

@@ -65,7 +65,7 @@ async def get_department(
     return department
 
 
-@router.put("/{id}", response_model=DepartmentResponse)
+@router.patch("/{id}", response_model=DepartmentResponse)
 async def update_department(
     *,
     db: DatabaseDep,

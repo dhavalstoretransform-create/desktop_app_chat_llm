@@ -65,7 +65,7 @@ def test_role_crud_lifecycle(client: TestClient):
         "name": "Senior Manager",
         "description": "Updated manager role description",
     }
-    response_update = client.put(f"/api/v1/roles/{role_id}", json=update_data)
+    response_update = client.patch(f"/api/v1/roles/{role_id}", json=update_data)
     assert response_update.status_code == 200
     assert response_update.json()["name"] == "Senior Manager"
     assert response_update.json()["code"] == "MANAGER"
@@ -85,9 +85,18 @@ def test_role_crud_lifecycle(client: TestClient):
     # 7. Non-existent get/update/delete returns 404
     random_id = uuid.uuid4()
     assert client.get(f"/api/v1/roles/{random_id}").status_code == 404
-    res = client.put(f"/api/v1/roles/{random_id}", json={"name": "New"})
+    res = client.patch(f"/api/v1/roles/{random_id}", json={"name": "New"})
     assert res.status_code == 404
     assert client.delete(f"/api/v1/roles/{random_id}").status_code == 404
+
+    # 8. Invalid UUID format returns 422
+    assert client.get("/api/v1/roles/invalid-uuid").status_code == 422
+    assert (
+        client.patch("/api/v1/roles/invalid-uuid", json={"name": "New"}).status_code
+        == 422
+    )
+    assert client.delete("/api/v1/roles/invalid-uuid").status_code == 422
+
 
 
 def test_department_crud_lifecycle(client: TestClient):
@@ -127,7 +136,7 @@ def test_department_crud_lifecycle(client: TestClient):
 
     # 4. Update Department description
     update_data = {"description": "Core R&D department"}
-    response_update = client.put(
+    response_update = client.patch(
         f"/api/v1/departments/{dept_id}", json=update_data
     )
     assert response_update.status_code == 200
@@ -148,6 +157,15 @@ def test_department_crud_lifecycle(client: TestClient):
     # 7. Non-existent get/update/delete returns 404
     random_id = uuid.uuid4()
     assert client.get(f"/api/v1/departments/{random_id}").status_code == 404
-    res = client.put(f"/api/v1/departments/{random_id}", json={"name": "New"})
+    res = client.patch(f"/api/v1/departments/{random_id}", json={"name": "New"})
     assert res.status_code == 404
     assert client.delete(f"/api/v1/departments/{random_id}").status_code == 404
+
+    # 8. Invalid UUID format returns 422
+    assert client.get("/api/v1/departments/invalid-uuid").status_code == 422
+    res_patch = client.patch(
+        "/api/v1/departments/invalid-uuid", json={"name": "New"}
+    )
+    assert res_patch.status_code == 422
+    assert client.delete("/api/v1/departments/invalid-uuid").status_code == 422
+
