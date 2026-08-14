@@ -18,6 +18,7 @@ class LoginRequest(BaseModel):
         description="Email address of the employee",
     )
     password: str = Field(..., description="User's plain text password")
+    login_role: str = Field(..., description="Role selected at login")
 
 
 class RefreshTokenRequest(BaseModel):

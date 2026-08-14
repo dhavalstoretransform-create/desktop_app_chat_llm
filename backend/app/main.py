@@ -37,15 +37,32 @@ app = FastAPI(
     redoc_url=f"{settings.API_V1_STR}/redoc",
 )
 
+
 # ── CORS middleware ───────────────────────────────────────────────────────────
-if settings.BACKEND_CORS_ORIGINS:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.BACKEND_CORS_ORIGINS,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+# Allow configured origins plus local frontend development servers.
+
+configured_origins = list(settings.BACKEND_CORS_ORIGINS or [])
+
+local_development_origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+]
+
+allowed_origins = list(
+    dict.fromkeys(
+        configured_origins + local_development_origins
     )
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # ── Global exception handler ─────────────────────────────────────────────────
@@ -65,6 +82,7 @@ async def unhandled_exception_handler(
         request.url.path,
         exc_info=exc,
     )
+
     return JSONResponse(
         status_code=500,
         content={
@@ -75,40 +93,6 @@ async def unhandled_exception_handler(
         },
     )
 
-
-
-
-
-# @app.exception_handler(Exception)
-# async def unhandled_exception_handler(
-#     request: Request, exc: Exception
-# ) -> JSONResponse:
-#     """
-#     Catch all unhandled exceptions.
-
-#     Never expose stack traces, internal messages, or credentials to users.
-#     Log the full error internally for diagnostics.
-#     """
-
-#     logger.exception(
-#         "Unhandled exception on %s %s",
-#         request.method,
-#         request.url.path,
-#         exc_info=exc,
-#     )
-
-#     # TEMPORARY DEVELOPMENT DEBUGGING ONLY
-#     traceback.print_exception(type(exc), exc, exc.__traceback__)
-
-#     return JSONResponse(
-#         status_code=500,
-#         content={
-#             "error": {
-#                 "code": "INTERNAL_ERROR",
-#                 "message": "An unexpected error occurred. Please try again later.",
-#             }
-#         },
-#     )
 
 # ── Root welcome endpoint ───────────────────────────────────────────────────
 @app.get("/", tags=["Root"], summary="Root API endpoint")
@@ -126,7 +110,9 @@ def root_welcome() -> dict[str, Any]:
 @app.get("/docs", include_in_schema=False)
 def redirect_to_docs() -> RedirectResponse:
     """Redirect root-level /docs requests to the versioned OpenAPI docs."""
-    return RedirectResponse(url=f"{settings.API_V1_STR}/docs")
+    return RedirectResponse(
+        url=f"{settings.API_V1_STR}/docs"
+    )
 
 
 # ── Root /health ─────────────────────────────────────────────────────────────

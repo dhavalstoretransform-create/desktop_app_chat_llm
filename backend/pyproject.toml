@@ -1,0 +1,36 @@
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+exclude = [
+    ".venv",
+    "__pycache__",
+    "migrations",
+    ".git",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ANN"]
+ignore = [
+    "ANN401",   # Dynamically typed expressions (Any) are disallowed
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ANN"]   # Relax annotations in test files
+
+[tool.mypy]
+python_version = "3.13"
+strict = false
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = [
+    ".venv",
+    "migrations",
+]

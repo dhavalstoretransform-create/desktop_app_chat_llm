@@ -1,22 +1,10 @@
-"""
-Base business service pattern.
-
-Services encapsulate business logic, domain validation, and workflow orchestration.
-They delegate persistence operations directly to repositories.
-"""
-
-from __future__ import annotations
-
-from typing import Any, Generic, TypeVar, cast
+from typing import Any, cast
 
 from app.core.database import Base
 from app.repositories.base import BaseRepository
 
-ModelType = TypeVar("ModelType", bound=Base)
-RepoType = TypeVar("RepoType", bound=BaseRepository[Any])
 
-
-class BaseService(Generic[ModelType, RepoType]):
+class BaseService[ModelType: Base, RepoType: BaseRepository[Any]]:
     """
     Generic service base class encapsulating business rules.
 
@@ -36,6 +24,7 @@ class BaseService(Generic[ModelType, RepoType]):
         """Get multiple records with pagination."""
         return cast(
             list[ModelType],
+            # pyrefly: ignore [missing-attribute]
             await self.repository.get_multi(skip=skip, limit=limit),
         )
 
@@ -61,3 +50,5 @@ class BaseService(Generic[ModelType, RepoType]):
     async def count(self) -> int:
         """Get total count of records."""
         return await self.repository.count()
+
+

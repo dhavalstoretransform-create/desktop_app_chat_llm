@@ -8,14 +8,15 @@ import uuid
 from decimal import Decimal
 
 import pytest
-from app.models.ai_model import AIModel
-from app.models.ai_provider import AIProvider
-from app.repositories.ai_model import AIModelRepository
-from app.repositories.ai_provider import AIProviderRepository
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+from app.models.ai_model import AIModel
+from app.models.ai_provider import AIProvider
+from app.repositories.ai_model import AIModelRepository
+from app.repositories.ai_provider import AIProviderRepository
 
 
 @pytest.mark.asyncio
@@ -231,6 +232,9 @@ async def test_ai_model_queries_and_deactivation(memory_db_session: AsyncSession
 @pytest.mark.asyncio
 async def test_ai_provider_relationships_and_safety(memory_db_session: AsyncSession):
     """Test relationships, deletion protection, invalid foreign keys, and rollbacks."""
+    from sqlalchemy import text
+    await memory_db_session.execute(text("PRAGMA foreign_keys=ON"))
+
     provider = AIProvider(code="anthropic", name="Anthropic")
     memory_db_session.add(provider)
     await memory_db_session.commit()

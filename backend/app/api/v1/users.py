@@ -9,7 +9,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.api.deps import DatabaseDep, require_permission
+from app.api.deps import DatabaseDep, require_roles
 from app.models.user import User
 from app.repositories.user import UserRepository
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
@@ -23,13 +23,13 @@ async def create_user(
     *,
     db: DatabaseDep,
     user_in: UserCreate,
-    current_user: Annotated[User, Depends(require_permission("user.create"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER"))],
 ) -> Any:
     """Create a new user/employee in the system."""
     repository = UserRepository(db)
     service = UserService(repository)
     try:
-        return await service.create(obj_in=user_in)
+        return await service.create(obj_in=user_in, current_user=current_user)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from None
 
@@ -38,7 +38,7 @@ async def create_user(
 async def list_users(
     *,
     db: DatabaseDep,
-    current_user: Annotated[User, Depends(require_permission("user.read"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER", "EMPLOYEE", "VIEWER"))],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ) -> Any:
@@ -53,7 +53,7 @@ async def get_user(
     *,
     db: DatabaseDep,
     id: uuid.UUID,
-    current_user: Annotated[User, Depends(require_permission("user.read"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER", "EMPLOYEE", "VIEWER"))],
 ) -> Any:
     """Get a specific user's details by UUID."""
     repository = UserRepository(db)
@@ -70,7 +70,7 @@ async def update_user(
     db: DatabaseDep,
     id: uuid.UUID,
     user_in: UserUpdate,
-    current_user: Annotated[User, Depends(require_permission("user.update"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER"))],
 ) -> Any:
     """Update an existing user's information."""
     repository = UserRepository(db)
@@ -80,7 +80,7 @@ async def update_user(
         raise HTTPException(status_code=404, detail="User not found.")
     try:
         update_dict = user_in.model_dump(exclude_unset=True)
-        return await service.update(id=id, obj_in=update_dict)
+        return await service.update(id=id, obj_in=update_dict, current_user=current_user)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from None
 
@@ -90,7 +90,7 @@ async def delete_user(
     *,
     db: DatabaseDep,
     id: uuid.UUID,
-    current_user: Annotated[User, Depends(require_permission("user.deactivate"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN"))],
 ) -> Any:
     """Soft delete a user by setting is_active to False."""
     repository = UserRepository(db)

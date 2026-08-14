@@ -7,11 +7,12 @@ from __future__ import annotations
 from datetime import datetime
 
 import pytest
-from app.models.department import Department
-from app.models.role import Role
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.department import Department
+from app.models.role import Role
 
 
 @pytest.mark.asyncio
@@ -19,8 +20,8 @@ async def test_role_db_operations(memory_db_session: AsyncSession):
     """Test Role model database operations (1-9)."""
     # 1 & 2. Create valid role and verify code is stored correctly
     role = Role(
-        code="SUPER_ADMIN",
-        name="Super Administrator",
+        code="TEST_SUPER_ADMIN",
+        name="Test Super Administrator",
         description="Full access role",
     )
     memory_db_session.add(role)
@@ -28,8 +29,8 @@ async def test_role_db_operations(memory_db_session: AsyncSession):
     await memory_db_session.refresh(role)
 
     assert role.id is not None
-    assert role.code == "SUPER_ADMIN"
-    assert role.name == "Super Administrator"
+    assert role.code == "TEST_SUPER_ADMIN"
+    assert role.name == "Test Super Administrator"
 
     # 4 & 5. Verify required fields defaults and active status
     assert role.is_active is True
@@ -39,7 +40,7 @@ async def test_role_db_operations(memory_db_session: AsyncSession):
     assert isinstance(role.updated_at, datetime)
 
     # 7. Retrieve role by code
-    query = select(Role).where(Role.code == "SUPER_ADMIN")
+    query = select(Role).where(Role.code == "TEST_SUPER_ADMIN")
     res = await memory_db_session.execute(query)
     fetched = res.scalar_one_or_none()
     assert fetched is not None
@@ -109,8 +110,8 @@ async def test_db_integrity_uniqueness_and_transactions(
 
     """Test uniqueness constraints and transaction rollback (10-12)."""
     # 10. Duplicate role code is rejected
-    role1 = Role(code="ADMIN", name="Administrator")
-    role2 = Role(code="ADMIN", name="Second Admin")
+    role1 = Role(code="TEST_ADMIN", name="Administrator")
+    role2 = Role(code="TEST_ADMIN", name="Second Admin")
     memory_db_session.add(role1)
     await memory_db_session.commit()
 
@@ -131,7 +132,7 @@ async def test_db_integrity_uniqueness_and_transactions(
     await memory_db_session.rollback()
 
     # 12. Transaction rollback works
-    role_fail = Role(code="ADMIN", name="Fails")  # Duplicate code
+    role_fail = Role(code="TEST_ADMIN", name="Fails")  # Duplicate code
     role_ok = Role(code="SALES", name="Sales")
     memory_db_session.add_all([role_fail, role_ok])
     with pytest.raises(IntegrityError):

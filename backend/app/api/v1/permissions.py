@@ -9,7 +9,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.api.deps import DatabaseDep, require_permission
+from app.api.deps import DatabaseDep, require_roles
 from app.models.user import User
 from app.repositories.permission import PermissionRepository
 from app.schemas.permission import (
@@ -27,7 +27,7 @@ async def create_permission(
     *,
     db: DatabaseDep,
     permission_in: PermissionCreate,
-    current_user: Annotated[User, Depends(require_permission("permission.create"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN"))],
 ) -> Any:
     """Create a new permission in the system."""
     repository = PermissionRepository(db)
@@ -42,7 +42,7 @@ async def create_permission(
 async def list_permissions(
     *,
     db: DatabaseDep,
-    current_user: Annotated[User, Depends(require_permission("permission.read"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN"))],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ) -> Any:
@@ -57,7 +57,7 @@ async def get_permission(
     *,
     db: DatabaseDep,
     id: uuid.UUID,
-    current_user: Annotated[User, Depends(require_permission("permission.read"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN"))],
 ) -> Any:
     """Get a specific permission's details by UUID."""
     repository = PermissionRepository(db)
@@ -74,7 +74,7 @@ async def update_permission(
     db: DatabaseDep,
     id: uuid.UUID,
     permission_in: PermissionUpdate,
-    current_user: Annotated[User, Depends(require_permission("permission.update"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN"))],
 ) -> Any:
     """Update an existing permission's information."""
     repository = PermissionRepository(db)
@@ -94,7 +94,7 @@ async def delete_permission(
     *,
     db: DatabaseDep,
     id: uuid.UUID,
-    current_user: Annotated[User, Depends(require_permission("permission.deactivate"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN"))],
 ) -> Any:
     """Soft delete a permission by setting is_active to False."""
     repository = PermissionRepository(db)

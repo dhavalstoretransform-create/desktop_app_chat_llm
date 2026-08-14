@@ -5,6 +5,11 @@ Integration and database tests for authentication (Phase 3).
 from __future__ import annotations
 
 import pytest
+from fastapi import Depends
+from fastapi.testclient import TestClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.main import app
@@ -13,10 +18,6 @@ from app.models.department import Department
 from app.models.role import Role
 from app.models.user import User
 from app.utils.security import hash_password
-from fastapi import Depends
-from fastapi.testclient import TestClient
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.fixture(autouse=True)
@@ -263,6 +264,7 @@ def test_auth_expired_jwt(client: TestClient, test_user: User):
     from datetime import UTC, datetime, timedelta
 
     import jwt
+
     from app.core.config import settings
 
     expired_payload = {
@@ -376,11 +378,12 @@ async def test_user_registration_comprehensive(
     """Test user registration API endpoints and downstream login/me validation."""
     import uuid
 
+    from sqlalchemy import delete
+
     # 12. Registration works when database has zero users
     # Clear any users created by fixtures
     from app.models.user import User
     from app.utils.security import verify_password
-    from sqlalchemy import delete
     
     await memory_db_session.execute(delete(User))
     await memory_db_session.commit()
@@ -425,8 +428,8 @@ async def test_user_registration_comprehensive(
     assert db_user.password_hash != "Projectmanager@123"
     assert verify_password("Projectmanager@123", db_user.password_hash) is True
     
-    # 13. Registration does not create permissions, 14. does not grant admin role
-    assert db_user.role_id is None
+    # 13. Registration assigns EMPLOYEE role, 14. does not grant admin role
+    assert db_user.role_id is not None
     assert db_user.department_id is None
 
     # 5. Duplicate email → 409
@@ -506,8 +509,9 @@ async def test_auth_audit_logging_comprehensive(
     Verify that all authentication events (login, failed login, logout, auth failure)
     map correctly to audit logs.
     """
-    from app.models.audit import AuditLog
     from sqlalchemy import delete
+
+    from app.models.audit import AuditLog
 
     # Clear old audit logs for clean assertions
     await memory_db_session.execute(delete(AuditLog))
@@ -625,7 +629,10 @@ async def test_auth_audit_logging_comprehensive(
 async def test_auth_login_verification_logic(
     client: TestClient, memory_db_session: AsyncSession
 ):
-    """Verify that successful login marks the user as verified, while failed logins keep it false."""
+    """
+    Verify that successful login marks the user as verified, 
+    while failed logins keep it false.
+    """
     from app.models.user import User
     from app.utils.security import hash_password
 
@@ -790,8 +797,9 @@ async def test_auth_logout_timestamp_regression(
     7. Assert that a LOGOUT audit record exists.
     """
     import hashlib
-    from app.models.user import User
+
     from app.models.audit import AuditLog
+    from app.models.user import User
     from app.models.user_refresh_token import UserRefreshToken
     from app.utils.security import hash_password
 

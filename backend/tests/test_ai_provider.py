@@ -7,10 +7,11 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from app.core.database import get_db
-from app.main import app
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.main import app
 
 
 @pytest.fixture(autouse=True)

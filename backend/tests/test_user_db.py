@@ -7,12 +7,13 @@ from __future__ import annotations
 from datetime import datetime
 
 import pytest
+from sqlalchemy import select, text
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.department import Department
 from app.models.role import Role
 from app.models.user import User
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.asyncio
@@ -72,7 +73,7 @@ async def test_user_db_operations(memory_db_session: AsyncSession):
     user.is_active = False
     await memory_db_session.commit()
     await memory_db_session.refresh(user)
-    assert user.is_active is False
+    assert not user.is_active
 
 
 @pytest.mark.asyncio
@@ -132,6 +133,8 @@ async def test_role_and_department_deletion_protection(
     memory_db_session: AsyncSession,
 ):
     """Test that Roles and Departments cannot be deleted if referenced by a User."""
+    await memory_db_session.execute(text("PRAGMA foreign_keys=ON"))
+
     role = Role(code="PROTECTED_ROLE", name="Protected Role")
     dept = Department(code="PROTECTED_DEPT", name="Protected Department")
     memory_db_session.add_all([role, dept])

@@ -7,12 +7,13 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import get_db
 from app.main import app
 from app.models.department import Department
 from app.models.role import Role
-from fastapi.testclient import TestClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.fixture(autouse=True)

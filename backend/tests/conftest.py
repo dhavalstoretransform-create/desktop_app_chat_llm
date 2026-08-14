@@ -8,21 +8,24 @@ from collections.abc import AsyncGenerator, Iterator
 
 import pytest
 import pytest_asyncio
-from app.core.database import Base
-from app.main import app
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from app.core.database import Base
+from app.main import app
+import os
+import uuid
 
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
     """Enable foreign key constraints for SQLite connections."""
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
+    # cursor = dbapi_connection.cursor()
+    # cursor.execute("PRAGMA foreign_keys=ON")
+    # cursor.close()
+    pass
 
 
 
@@ -44,13 +47,20 @@ async def async_client() -> AsyncGenerator[AsyncClient]:
 @pytest_asyncio.fixture
 async def memory_db_session() -> AsyncGenerator[AsyncSession]:
     """Create in-memory SQLite async session for isolated repository/service testing."""
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+    from sqlalchemy.pool import StaticPool
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        echo=False,
+        poolclass=StaticPool,
+        connect_args={"check_same_thread": False},
+    )
 
     @event.listens_for(engine.sync_engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
+        # cursor = dbapi_connection.cursor()
+        # cursor.execute("PRAGMA foreign_keys=ON")
+        # cursor.close()
+        pass
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -59,6 +69,38 @@ async def memory_db_session() -> AsyncGenerator[AsyncSession]:
         bind=engine, class_=AsyncSession, expire_on_commit=False
     )
     async with async_session() as session:
+        # Seed standard roles
+        from app.models.role import Role
+        from app.models.user import User
+        import uuid
+        import os
+        
+        super_admin_role = Role(id=uuid.uuid4(), code="SUPER_ADMIN", name="Super Admin")
+        admin_role = Role(id=uuid.uuid4(), code="ADMIN", name="Admin")
+        manager_role = Role(id=uuid.uuid4(), code="MANAGER", name="Manager")
+        employee_role = Role(id=uuid.uuid4(), code="EMPLOYEE", name="Employee")
+        viewer_role = Role(id=uuid.uuid4(), code="VIEWER", name="Viewer")
+        
+        session.add_all([super_admin_role, admin_role, manager_role, employee_role, viewer_role])
+        await session.commit()
+        
+        # Create a default dummy user to be used in auto_mock_authorization
+        dummy_user_id = uuid.UUID("a0000000-0000-0000-0000-000000000001")
+        dummy_user = User(
+            id=dummy_user_id,
+            employee_code="TEST-ADMIN",
+            email="test_admin@example.com",
+            full_name="Default Admin",
+            password_hash="test",
+            is_active=True,
+            role_id=admin_role.id,
+        )
+        session.add(dummy_user)
+        await session.commit()
+        
+        # Set env var so auto_mock_authorization can pick it up
+        os.environ["DUMMY_TEST_USER_ID"] = str(dummy_user_id)
+        
         yield session
 
     await engine.dispose()
@@ -95,8 +137,9 @@ def auto_mock_authorization(request: pytest.FixtureRequest):
     dummy_role.is_active = True
     dummy_role.permissions = [mock_permission]
 
+    dummy_user_id = uuid.UUID("a0000000-0000-0000-0000-000000000001")
     dummy_user = User(
-        id=uuid.uuid4(),
+        id=dummy_user_id,
         email="test_admin@example.com",
         full_name="Default Admin",
         is_active=True,

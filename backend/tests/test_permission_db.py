@@ -7,13 +7,14 @@ from __future__ import annotations
 from datetime import datetime
 
 import pytest
-from app.models.permission import Permission
-from app.models.role import Role
-from app.models.role_permission import role_permissions
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+from app.models.permission import Permission
+from app.models.role import Role
+from app.models.role_permission import role_permissions
 
 
 @pytest.mark.asyncio
@@ -55,7 +56,7 @@ async def test_permission_db_operations(memory_db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_role_permission_many_to_many(memory_db_session: AsyncSession):
     """Test many-to-many relationship between Role and Permission."""
-    role = Role(code="ADMIN", name="Administrator")
+    role = Role(code="TEST_ADMIN", name="Administrator")
     perm1 = Permission(
         code="user.create", name="Create Users", resource="user", action="create"
     )

@@ -1,7 +1,8 @@
 import asyncio
 
-from app.core.database import engine
 from sqlalchemy import text
+
+from app.core.database import engine
 
 
 async def main() -> None:

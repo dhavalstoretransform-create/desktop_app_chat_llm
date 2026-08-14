@@ -14,12 +14,13 @@ import uuid
 from datetime import datetime
 
 import pytest
-from app.models.base import BaseModel
-from app.repositories.base import BaseRepository
-from app.services.base import BaseService
 from sqlalchemy import String
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
+
+from app.models.base import BaseModel
+from app.repositories.base import BaseRepository
+from app.services.base import BaseService
 
 
 # ── Concrete test model ───────────────────────────────────────────────────────

@@ -9,7 +9,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.api.deps import DatabaseDep, require_permission
+from app.api.deps import DatabaseDep, require_roles
 from app.models.user import User
 from app.repositories.ai_provider import AIProviderRepository
 from app.schemas.ai_provider import (
@@ -27,7 +27,7 @@ async def create_provider(
     *,
     db: DatabaseDep,
     provider_in: AIProviderCreate,
-    current_user: Annotated[User, Depends(require_permission("ai_provider.create"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER"))],
 ) -> Any:
     """Create a new AI Provider."""
     repository = AIProviderRepository(db)
@@ -42,7 +42,7 @@ async def create_provider(
 async def list_providers(
     *,
     db: DatabaseDep,
-    current_user: Annotated[User, Depends(require_permission("ai_provider.read"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER", "EMPLOYEE", "VIEWER"))],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ) -> Any:
@@ -57,7 +57,7 @@ async def get_provider(
     *,
     db: DatabaseDep,
     id: uuid.UUID,
-    current_user: Annotated[User, Depends(require_permission("ai_provider.read"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER", "EMPLOYEE", "VIEWER"))],
 ) -> Any:
     """Get details of a specific AI Provider."""
     repository = AIProviderRepository(db)
@@ -74,7 +74,7 @@ async def update_provider(
     db: DatabaseDep,
     id: uuid.UUID,
     provider_in: AIProviderUpdate,
-    current_user: Annotated[User, Depends(require_permission("ai_provider.update"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER"))],
 ) -> Any:
     """Partially update an existing AI Provider."""
     repository = AIProviderRepository(db)
@@ -95,7 +95,7 @@ async def delete_provider(
     db: DatabaseDep,
     id: uuid.UUID,
     current_user: Annotated[
-        User, Depends(require_permission("ai_provider.deactivate"))
+        User, Depends(require_roles("SUPER_ADMIN", "ADMIN"))
     ],
 ) -> Any:
     """Soft delete/deactivate an AI Provider."""

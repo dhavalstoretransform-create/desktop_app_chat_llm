@@ -7,10 +7,11 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from app.core.database import get_db
-from app.main import app
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.main import app
 
 
 @pytest.fixture(autouse=True)
@@ -28,15 +29,15 @@ def test_role_crud_lifecycle(client: TestClient):
     """Test full CRUD operations for roles via API."""
     # 1. Create a Role
     create_data = {
-        "code": "MANAGER",
-        "name": "Manager",
+        "code": "TEST_ROLE",
+        "name": "Test Role",
         "description": "Department manager role",
     }
     response = client.post("/api/v1/roles/", json=create_data)
     assert response.status_code == 201
     res_data = response.json()
-    assert res_data["code"] == "MANAGER"
-    assert res_data["name"] == "Manager"
+    assert res_data["code"] == "TEST_ROLE"
+    assert res_data["name"] == "Test Role"
     assert res_data["description"] == "Department manager role"
     assert "id" in res_data
     assert res_data["is_active"] is True
@@ -46,7 +47,7 @@ def test_role_crud_lifecycle(client: TestClient):
     response_dup = client.post(
         "/api/v1/roles/",
         json={
-            "code": "MANAGER",
+            "code": "TEST_ROLE",
             "name": "Another Manager",
             "description": "Dup code",
         },
@@ -57,7 +58,7 @@ def test_role_crud_lifecycle(client: TestClient):
     # 3. Read Role by ID
     response_get = client.get(f"/api/v1/roles/{role_id}")
     assert response_get.status_code == 200
-    assert response_get.json()["code"] == "MANAGER"
+    assert response_get.json()["code"] == "TEST_ROLE"
 
     # 4. Update Role display name (independent of code)
     update_data = {
@@ -67,7 +68,7 @@ def test_role_crud_lifecycle(client: TestClient):
     response_update = client.patch(f"/api/v1/roles/{role_id}", json=update_data)
     assert response_update.status_code == 200
     assert response_update.json()["name"] == "Senior Manager"
-    assert response_update.json()["code"] == "MANAGER"
+    assert response_update.json()["code"] == "TEST_ROLE"
 
     # 5. List Roles (Paginated)
     response_list = client.get("/api/v1/roles/?skip=0&limit=10")

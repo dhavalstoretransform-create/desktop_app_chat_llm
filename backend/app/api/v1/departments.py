@@ -9,7 +9,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.api.deps import DatabaseDep, require_permission
+from app.api.deps import DatabaseDep, require_roles
 from app.models.user import User
 from app.repositories.department import DepartmentRepository
 from app.schemas.department import (
@@ -27,7 +27,7 @@ async def create_department(
     *,
     db: DatabaseDep,
     department_in: DepartmentCreate,
-    current_user: Annotated[User, Depends(require_permission("department.create"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER"))],
 ) -> Any:
     """Create a new department."""
     repository = DepartmentRepository(db)
@@ -42,7 +42,7 @@ async def create_department(
 async def list_departments(
     *,
     db: DatabaseDep,
-    current_user: Annotated[User, Depends(require_permission("department.read"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER", "EMPLOYEE", "VIEWER"))],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ) -> Any:
@@ -57,7 +57,7 @@ async def get_department(
     *,
     db: DatabaseDep,
     id: uuid.UUID,
-    current_user: Annotated[User, Depends(require_permission("department.read"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER", "EMPLOYEE", "VIEWER"))],
 ) -> Any:
     """Get a specific department's details by UUID."""
     repository = DepartmentRepository(db)
@@ -74,7 +74,7 @@ async def update_department(
     db: DatabaseDep,
     id: uuid.UUID,
     department_in: DepartmentUpdate,
-    current_user: Annotated[User, Depends(require_permission("department.update"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER"))],
 ) -> Any:
     """Update an existing department."""
     repository = DepartmentRepository(db)
@@ -94,7 +94,7 @@ async def delete_department(
     *,
     db: DatabaseDep,
     id: uuid.UUID,
-    current_user: Annotated[User, Depends(require_permission("department.deactivate"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN"))],
 ) -> Any:
     """Soft delete a department by setting is_active to False."""
     repository = DepartmentRepository(db)

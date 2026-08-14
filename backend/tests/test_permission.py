@@ -7,10 +7,11 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from app.core.database import get_db
-from app.main import app
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.main import app
 
 
 @pytest.fixture(autouse=True)
@@ -98,7 +99,7 @@ def test_role_permission_assignment_api(client: TestClient):
     # 1. Create a Role
     role_res = client.post(
         "/api/v1/roles/",
-        json={"code": "MANAGER", "name": "Manager Role"},
+        json={"code": "TEST_MANAGER", "name": "Manager Role"},
     )
     assert role_res.status_code == 201
     role_id = role_res.json()["id"]

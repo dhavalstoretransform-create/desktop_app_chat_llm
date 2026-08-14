@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: chatllm_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chatllm
+      POSTGRES_PASSWORD: chatllm_dev_password
+      POSTGRES_DB: chatllm_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - chatllm_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatllm -d chatllm_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  chatllm_postgres_data:
+    driver: local

@@ -113,7 +113,10 @@ async def get_current_user(
 
 
 def require_permission(permission_code: str) -> Callable[..., Any]:
-    """Dependency to check if the current user has specific permissions."""
+    """
+    DEPRECATED: Use require_roles instead.
+    Dependency to check if the current user has specific permissions.
+    """
     async def dependency(
         current_user: CurrentUserDep,
         db: DatabaseDep,
@@ -145,6 +148,38 @@ def require_permission(permission_code: str) -> Callable[..., Any]:
     return dependency
 
 
+def require_roles(*allowed_roles: str) -> Callable[..., Any]:
+    """Dependency to check if the current user has one of the allowed roles."""
+    async def dependency(
+        current_user: CurrentUserDep,
+        db: DatabaseDep,
+    ) -> User:
+        if (
+            current_user.role
+            and current_user.role.is_active
+            and current_user.role.code in allowed_roles
+        ):
+            return current_user
+            
+        # Write authorization failure to audit log
+        from app.repositories.audit_log import AuditLogRepository
+        audit_repo = AuditLogRepository(db)
+        await audit_repo.create(
+            obj_in={
+                "user_id": current_user.id,
+                "action": "AUTHORIZATION_FAILED",
+                "entity_name": "role",
+                "entity_id": current_user.id,
+                "description": f"User role {current_user.role.code if current_user.role else 'None'} not in allowed roles: {', '.join(allowed_roles)}",
+            }
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient role permissions",
+        )
+    return dependency
+
+
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
 
 __all__ = [
@@ -153,4 +188,5 @@ __all__ = [
     "CurrentUserDep",
     "get_current_user",
     "require_permission",
+    "require_roles",
 ]

@@ -9,7 +9,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.api.deps import DatabaseDep, require_permission
+from app.api.deps import DatabaseDep, require_roles
 from app.models.user import User
 from app.repositories.ai_model import AIModelRepository
 from app.repositories.ai_provider import AIProviderRepository
@@ -24,7 +24,7 @@ async def create_model(
     *,
     db: DatabaseDep,
     model_in: AIModelCreate,
-    current_user: Annotated[User, Depends(require_permission("ai_model.create"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER"))],
 ) -> Any:
     """Register a new AI Model under a provider."""
     # First validate provider exists
@@ -45,7 +45,7 @@ async def create_model(
 async def list_models(
     *,
     db: DatabaseDep,
-    current_user: Annotated[User, Depends(require_permission("ai_model.read"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER", "EMPLOYEE", "VIEWER"))],
     provider_id: Annotated[uuid.UUID | None, Query()] = None,
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=1000)] = 100,
@@ -63,7 +63,7 @@ async def get_model(
     *,
     db: DatabaseDep,
     id: uuid.UUID,
-    current_user: Annotated[User, Depends(require_permission("ai_model.read"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER", "EMPLOYEE", "VIEWER"))],
 ) -> Any:
     """Get details of a specific AI Model."""
     repository = AIModelRepository(db)
@@ -80,7 +80,7 @@ async def update_model(
     db: DatabaseDep,
     id: uuid.UUID,
     model_in: AIModelUpdate,
-    current_user: Annotated[User, Depends(require_permission("ai_model.update"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER"))],
 ) -> Any:
     """Partially update an existing AI Model."""
     repository = AIModelRepository(db)
@@ -107,7 +107,7 @@ async def delete_model(
     *,
     db: DatabaseDep,
     id: uuid.UUID,
-    current_user: Annotated[User, Depends(require_permission("ai_model.deactivate"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN"))],
 ) -> Any:
     """Soft delete/deactivate an AI Model."""
     repository = AIModelRepository(db)

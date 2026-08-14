@@ -218,10 +218,19 @@ async def register(
     register_in: UserRegisterRequest,
 ) -> Any:
     """Register a new user identity."""
+    from app.repositories.role import RoleRepository
+    role_repo = RoleRepository(db)
+    employee_role = await role_repo.get_by_code("EMPLOYEE")
+    if not employee_role:
+        raise HTTPException(status_code=500, detail="EMPLOYEE role not found.")
+        
+    register_data = register_in.model_dump()
+    register_data["role_id"] = employee_role.id
+    
     user_repo = UserRepository(db)
     user_service = UserService(user_repo)
     try:
-        user = await user_service.create(obj_in=register_in)
+        user = await user_service.create(obj_in=register_data, current_user=None)
         return user
     except ValueError as e:
         if "already exists" in str(e):

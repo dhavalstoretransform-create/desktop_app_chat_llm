@@ -74,9 +74,18 @@ class User(BaseModel):
         DateTime(timezone=True),
         nullable=True,
     )
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=True,
+        index=True,
+    )
 
     # Relationships
     role: Mapped[Role | None] = relationship("Role", lazy="select")
     department: Mapped[Department | None] = relationship("Department", lazy="select")
+    creator: Mapped[User | None] = relationship(
+        "User", remote_side="User.id", lazy="select"
+    )
 
 

@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import DatabaseDep, require_permission
+from app.api.deps import DatabaseDep, require_roles
 from app.models.permission import Permission
 from app.models.role import Role
 from app.models.user import User
@@ -28,7 +28,7 @@ async def create_role(
     *,
     db: DatabaseDep,
     role_in: RoleCreate,
-    current_user: Annotated[User, Depends(require_permission("role.create"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN"))],
 ) -> Any:
     """Create a new user role in the system."""
     repository = RoleRepository(db)
@@ -43,7 +43,7 @@ async def create_role(
 async def list_roles(
     *,
     db: DatabaseDep,
-    current_user: Annotated[User, Depends(require_permission("role.read"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER", "EMPLOYEE", "VIEWER"))],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ) -> Any:
@@ -58,7 +58,7 @@ async def get_role(
     *,
     db: DatabaseDep,
     id: uuid.UUID,
-    current_user: Annotated[User, Depends(require_permission("role.read"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER", "EMPLOYEE", "VIEWER"))],
 ) -> Any:
     """Get a specific role's details by UUID."""
     repository = RoleRepository(db)
@@ -75,7 +75,7 @@ async def update_role(
     db: DatabaseDep,
     id: uuid.UUID,
     role_in: RoleUpdate,
-    current_user: Annotated[User, Depends(require_permission("role.update"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN"))],
 ) -> Any:
     """Update an existing role's information."""
     repository = RoleRepository(db)
@@ -95,7 +95,7 @@ async def delete_role(
     *,
     db: DatabaseDep,
     id: uuid.UUID,
-    current_user: Annotated[User, Depends(require_permission("role.deactivate"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN"))],
 ) -> Any:
     """Soft delete a role by setting is_active to False."""
     repository = RoleRepository(db)
@@ -112,7 +112,7 @@ async def assign_role_permissions(
     db: DatabaseDep,
     id: uuid.UUID,
     permission_ids: list[uuid.UUID],
-    current_user: Annotated[User, Depends(require_permission("permission.assign"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN"))],
 ) -> Any:
     """Assign a list of permission IDs to a role."""
     query = select(Role).where(Role.id == id).options(selectinload(Role.permissions))
@@ -149,7 +149,7 @@ async def get_role_permissions(
     *,
     db: DatabaseDep,
     id: uuid.UUID,
-    current_user: Annotated[User, Depends(require_permission("role.read"))],
+    current_user: Annotated[User, Depends(require_roles("SUPER_ADMIN", "ADMIN", "MANAGER", "EMPLOYEE", "VIEWER"))],
 ) -> Any:
     """List all permissions assigned to a role."""
     query = select(Role).where(Role.id == id).options(selectinload(Role.permissions))

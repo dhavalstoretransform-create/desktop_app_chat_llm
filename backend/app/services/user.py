@@ -24,8 +24,37 @@ class UserService(BaseService[User, UserRepository]):
         """Hash user passwords securely using Argon2."""
         return hash_password(password)
 
+    def _check_role_assignment(self, current_user: User | None, target_role_code: str) -> None:
+        """Enforce the role assignment matrix."""
+        if target_role_code == "SUPER_ADMIN":
+            raise ValueError("Cannot assign SUPER_ADMIN role.")
 
-    async def create(self, *, obj_in: dict[str, Any] | Any) -> User:
+        if current_user is None:
+            if target_role_code != "EMPLOYEE":
+                raise ValueError("Public registration can only assign EMPLOYEE role.")
+            return
+
+        if not current_user.role:
+            raise ValueError("Current user has no role.")
+
+        current_role = current_user.role.code
+
+        if current_role == "SUPER_ADMIN":
+            return
+        elif current_role == "ADMIN":
+            if target_role_code == "ADMIN":
+                raise ValueError("ADMIN cannot assign ADMIN role.")
+            return
+        elif current_role == "MANAGER":
+            if target_role_code in ["ADMIN", "MANAGER"]:
+                raise ValueError(f"MANAGER cannot assign {target_role_code} role.")
+            return
+
+        raise ValueError("User does not have permission to assign roles.")
+
+    async def create(
+        self, *, obj_in: dict[str, Any] | Any, current_user: User | None = None
+    ) -> User:
         """Create a user, validating email, employee_code, role, and department."""
         is_dict = isinstance(obj_in, dict)
 
@@ -62,12 +91,14 @@ class UserService(BaseService[User, UserRepository]):
                     f"User with employee code '{employee_code}' already exists."
                 )
 
-        # Verify Role and Department exist
         if role_id:
             role_repo = RoleRepository(self.repository.db)
             role = await role_repo.get(role_id)
             if not role:
                 raise ValueError(f"Role with ID '{role_id}' does not exist.")
+            if not role.is_active:
+                raise ValueError(f"Role '{role.code}' is not active.")
+            self._check_role_assignment(current_user, role.code)
 
         if department_id:
             dept_repo = DepartmentRepository(self.repository.db)
@@ -91,11 +122,14 @@ class UserService(BaseService[User, UserRepository]):
         data["password_hash"] = password_hash
         if "password" in data:
             del data["password"]
+            
+        if current_user:
+            data["created_by"] = current_user.id
 
         return await super().create(obj_in=data)
 
     async def update(
-        self, *, id: Any, obj_in: dict[str, Any] | Any
+        self, *, id: Any, obj_in: dict[str, Any] | Any, current_user: User | None = None
     ) -> User | None:
         """Update user, verifying email, code, role, and dept."""
 
@@ -142,6 +176,9 @@ class UserService(BaseService[User, UserRepository]):
             role = await role_repo.get(role_id)
             if not role:
                 raise ValueError(f"Role with ID '{role_id}' does not exist.")
+            if not role.is_active:
+                raise ValueError(f"Role '{role.code}' is not active.")
+            self._check_role_assignment(current_user, role.code)
 
         if department_id:
             dept_repo = DepartmentRepository(self.repository.db)

@@ -10,11 +10,12 @@ import uuid
 from decimal import Decimal
 
 import pytest
-from app.models.ai_model import AIModel
-from app.models.ai_provider import AIProvider
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.ai_model import AIModel
+from app.models.ai_provider import AIProvider
 
 
 @pytest.mark.asyncio
