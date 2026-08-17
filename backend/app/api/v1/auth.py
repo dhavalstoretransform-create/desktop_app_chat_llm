@@ -79,6 +79,25 @@ async def login(
             detail="Incorrect email or password.",
         )
 
+    from app.repositories.role import RoleRepository
+    role_repo = RoleRepository(db)
+    role = await role_repo.get(user.role_id)
+    
+    if not role:
+        await audit_repo.create(
+            obj_in={
+                "user_id": user.id,
+                "action": "LOGIN_FAILED",
+                "entity_name": "user",
+                "entity_id": user.id,
+                "description": "User has no role assigned",
+            }
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions",
+        )
+
     # Mark user as verified and update last login time
     from datetime import UTC, datetime
     user_service = UserService(user_repo)
@@ -91,7 +110,11 @@ async def login(
     )
 
     # Issue tokens
-    access_token = create_access_token(subject=user.id)
+    access_token = create_access_token(
+        subject=user.id,
+        role=role.code,
+        department_id=str(user.department_id) if user.department_id else None
+    )
     refresh_token = await token_service.create_token(user_id=user.id)
 
     # Log successful login
@@ -151,7 +174,15 @@ async def refresh(
             detail="User account is inactive or not found.",
         )
 
-    new_access_token = create_access_token(subject=user.id)
+    from app.repositories.role import RoleRepository
+    role_repo = RoleRepository(db)
+    role = await role_repo.get(user.role_id) if user.role_id else None
+
+    new_access_token = create_access_token(
+        subject=user.id,
+        role=role.code if role else None,
+        department_id=str(user.department_id) if user.department_id else None
+    )
 
     # Log successful token refresh
     await audit_repo.create(
@@ -218,14 +249,7 @@ async def register(
     register_in: UserRegisterRequest,
 ) -> Any:
     """Register a new user identity."""
-    from app.repositories.role import RoleRepository
-    role_repo = RoleRepository(db)
-    employee_role = await role_repo.get_by_code("EMPLOYEE")
-    if not employee_role:
-        raise HTTPException(status_code=500, detail="EMPLOYEE role not found.")
-        
     register_data = register_in.model_dump()
-    register_data["role_id"] = employee_role.id
     
     user_repo = UserRepository(db)
     user_service = UserService(user_repo)

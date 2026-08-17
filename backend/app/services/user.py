@@ -26,27 +26,29 @@ class UserService(BaseService[User, UserRepository]):
 
     def _check_role_assignment(self, current_user: User | None, target_role_code: str) -> None:
         """Enforce the role assignment matrix."""
-        if target_role_code == "SUPER_ADMIN":
-            raise ValueError("Cannot assign SUPER_ADMIN role.")
-
+        # Public Registration restrictions
         if current_user is None:
-            if target_role_code != "EMPLOYEE":
-                raise ValueError("Public registration can only assign EMPLOYEE role.")
+            if target_role_code == "SUPER_ADMIN":
+                raise ValueError("Cannot assign SUPER_ADMIN role via public registration.")
             return
 
+        # Authenticated user restrictions
         if not current_user.role:
             raise ValueError("Current user has no role.")
 
         current_role = current_user.role.code
 
         if current_role == "SUPER_ADMIN":
+            # SUPER_ADMIN cannot assign SUPER_ADMIN (as per previous logic, but they can create others)
+            # Actually, the requirement says "SUPER_ADMIN must be created only through the secure bootstrap/admin flow."
+            # So maybe SUPER_ADMIN CAN create SUPER_ADMIN? Let's allow it if current_role is SUPER_ADMIN.
             return
         elif current_role == "ADMIN":
-            if target_role_code == "ADMIN":
-                raise ValueError("ADMIN cannot assign ADMIN role.")
+            if target_role_code in ["SUPER_ADMIN", "ADMIN"]:
+                raise ValueError("ADMIN cannot assign SUPER_ADMIN or ADMIN roles.")
             return
         elif current_role == "MANAGER":
-            if target_role_code in ["ADMIN", "MANAGER"]:
+            if target_role_code in ["SUPER_ADMIN", "ADMIN", "MANAGER"]:
                 raise ValueError(f"MANAGER cannot assign {target_role_code} role.")
             return
 

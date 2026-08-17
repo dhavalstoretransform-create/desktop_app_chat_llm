@@ -33,7 +33,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(
-    subject: str | Any, expires_delta: timedelta | None = None
+    subject: str | Any, 
+    role: str | None = None,
+    department_id: str | None = None,
+    expires_delta: timedelta | None = None
 ) -> str:
     """Create JWT access token."""
     if expires_delta:
@@ -43,6 +46,11 @@ def create_access_token(
             minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
         )
     to_encode = {"exp": expire, "sub": str(subject), "type": "access"}
+    if role:
+        to_encode["role"] = role
+    if department_id:
+        to_encode["department_id"] = str(department_id)
+        
     return jwt.encode(
         to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM
     )

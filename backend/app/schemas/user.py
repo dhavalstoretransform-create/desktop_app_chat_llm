@@ -98,6 +98,9 @@ class UserUpdate(BaseModel):
     )
 
 
+from app.schemas.role import RoleResponse
+from app.schemas.department import DepartmentResponse
+
 class UserResponse(UserBase):
     """Schema for User details in API responses."""
 
@@ -106,8 +109,17 @@ class UserResponse(UserBase):
     last_login_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
+    role: RoleResponse | None = None
+    department: DepartmentResponse | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserListResponse(BaseModel):
+    """Schema for paginated list of Users."""
+
+    items: list[UserResponse]
+    total: int
 
 
 class UserRegisterRequest(BaseModel):
@@ -138,6 +150,10 @@ class UserRegisterRequest(BaseModel):
         min_length=8,
         max_length=100,
         description="Plain text password",
+    )
+    role_id: uuid.UUID = Field(
+        ...,
+        description="Associated Role UUID",
     )
 
 
