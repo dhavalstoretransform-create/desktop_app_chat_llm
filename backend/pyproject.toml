@@ -37,4 +37,4 @@ exclude = [
 
 
 [tool.vercel]
-entrypoint = "app.main:app"
+entrypoint = "backend.app.main:app"
