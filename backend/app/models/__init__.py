@@ -20,6 +20,7 @@ from app.models.usage import TokenUsage
 from app.models.user import User
 from app.models.user_refresh_token import UserRefreshToken
 from app.models.wallet import EmployeeTokenWallet
+from app.models.token_transaction import TokenTransaction
 
 __all__ = [
     "BaseModel",
@@ -44,5 +45,6 @@ __all__ = [
     "User",
     "UserRefreshToken",
     "EmployeeTokenWallet",
+    "TokenTransaction",
 ]
 
