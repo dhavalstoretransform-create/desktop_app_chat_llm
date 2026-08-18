@@ -34,3 +34,7 @@ exclude = [
     ".venv",
     "migrations",
 ]
+
+
+[tool.vercel]
+entrypoint = "backend.app.main:app"
